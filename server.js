@@ -1,5 +1,5 @@
 const socketIO = require('socket.io')
-const io = socketIO.listen(3000)
+const io = socketIO.listen(process.env.PORT || 3000)
 
 io.on('connection', socket => {
   console.log('user connected')
@@ -30,6 +30,6 @@ io.on('connection', socket => {
 
   socket.on('switchRole', room => {
     console.log('switchRole')
-    io.to(room).emit('switchedRole')
+    socket.emit('switchedRole')
   })
 })
