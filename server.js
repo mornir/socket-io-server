@@ -28,8 +28,19 @@ io.on('connection', socket => {
     io.to(payload.room).emit('selectedCard', payload)
   })
 
+  // used in game 2
   socket.on('switchRole', room => {
     console.log('switchRole')
     socket.emit('switchedRole')
+  })
+
+  // used in chat component
+  socket.on('createMessage', (msg, callback) => {
+    console.log('createMessage', msg)
+    io.to(msg.room).emit('newMessage', {
+      createAt: new Date().getTime(),
+      ...msg,
+    })
+    callback()
   })
 })
