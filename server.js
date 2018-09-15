@@ -28,12 +28,6 @@ io.on('connection', socket => {
     io.to(payload.room).emit('selectedCard', payload)
   })
 
-  // used in game 2
-  socket.on('switchRole', room => {
-    console.log('switchRole')
-    socket.emit('switchedRole')
-  })
-
   // used in chat component
   socket.on('createMessage', (msg, callback) => {
     console.log('createMessage', msg)
@@ -42,5 +36,12 @@ io.on('connection', socket => {
       ...msg,
     })
     callback()
+  })
+
+  // used in game 2
+
+  socket.on('revealJapanese', payload => {
+    console.log('revealedJapanese', payload)
+    io.to(payload.room).emit('revealedJapanese', payload)
   })
 })
