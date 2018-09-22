@@ -39,9 +39,31 @@ io.on('connection', socket => {
   })
 
   // used in game 2
-
   socket.on('revealJapanese', payload => {
     console.log('revealedJapanese', payload)
     io.to(payload.room).emit('revealedJapanese', payload)
+  })
+
+  //used in game 1
+  socket.on('addBulle', bulle => {
+    console.log('revealedJapanese', bulle)
+    io.emit('addedBulle', bulle)
+  })
+
+  //used in game 1
+  socket.on('revealTranscript', () => {
+    console.log('revealTranscript')
+    io.emit('revealedTranscript')
+  })
+
+  //used in game 1
+  socket.on('revealTranslation', () => {
+    console.log('revealTranslation')
+    io.emit('revealedTranslation')
+  })
+
+  socket.on('invertRole', () => {
+    console.log('invertRole')
+    io.emit('invertedRole')
   })
 })
