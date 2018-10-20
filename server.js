@@ -1,69 +1,93 @@
 const socketIO = require('socket.io')
 const io = socketIO.listen(process.env.PORT || 3000)
 
-io.on('connection', socket => {
-  console.log('user connected')
+const { getRooms } = require('./utils')
 
-  socket.on('join', room => {
+io.on('connection', socket => {
+  socket.on('join', ({ token, room }, callback) => {
+    if (token != 8888) {
+      return callback('Invalid token')
+    }
+
     socket.join(room)
 
-    socket.emit('welcome', 'welcome man')
-    socket.broadcast.to(room).emit('welcome', 'new user')
+    io.in(room).clients((error, clients) => {
+      //TODO: review this line before production
+      if (error) throw error
+
+      // if room already contains one user, it means that an other user (student or tutor) is already connected
+      if (clients.length > 1) {
+        io.to(room).emit('other_connected')
+      }
+    })
+
+    socket.emit('welcome', `welcome in room: ${room}`)
+    socket.broadcast.to(room).emit('welcome', `welcome ${socket.id}`)
+
+    callback()
   })
 
+  socket.on('disconnecting', reason => {
+    console.log({ reason })
+
+    const rooms = Object.keys(socket.rooms)
+    console.log('room list', rooms)
+
+    rooms.forEach(room => {
+      io.to(room).emit('other_disconnected', { id: socket.id })
+    })
+  })
+
+  socket.on('inviteStudent', params => {
+    console.log('inviteStudent', params)
+
+    getRooms(socket).forEach(room => {
+      socket.to(room).emit('inviteStudent', params)
+    })
+  })
+
+  socket.on('studentHasArrived', () => {
+    console.log('studentHasArrived')
+    getRooms(socket).forEach(room => {
+      socket.to(room).emit('studentHasArrived')
+    })
+  })
+
+  socket.on('studentIsReady', () => {
+    console.log('studentIsReady')
+    getRooms(socket).forEach(room => {
+      io.to(room).emit('studentIsReady')
+    })
+  })
+
+  socket.on('startGame', () => {
+    console.log('startGame')
+    getRooms(socket).forEach(room => {
+      io.to(room).emit('startGame')
+    })
+  })
+
+  require('./games/GameTwo')(io, socket)
+  require('./games/GameOne')(io, socket)
+
+  // used in chat component
+  socket.on('createMessage', (msg, callback) => {
+    console.log('createMessage', msg)
+    getRooms(socket).forEach(room => {
+      io.to(room).emit('new_message', {
+        createAt: new Date().getTime(),
+        ...msg,
+      })
+    })
+
+    callback()
+  })
+
+  // Game 3
   socket.on('player1Answer', answer => {
     console.log('got answer', answer)
     socket.broadcast.emit('player1AnswerReceived', answer)
   })
 
-  // used in games 2 & 3
-  socket.on('rateAnswer', rating => {
-    console.log('got rating', rating)
-    io.to(rating.room).emit('ratedAnswer', rating)
-  })
-
-  // used in game 2
-  socket.on('selectCard', payload => {
-    console.log('got payload', payload)
-    io.to(payload.room).emit('selectedCard', payload)
-  })
-
-  // used in chat component
-  socket.on('createMessage', (msg, callback) => {
-    console.log('createMessage', msg)
-    io.to(msg.room).emit('newMessage', {
-      createAt: new Date().getTime(),
-      ...msg,
-    })
-    callback()
-  })
-
-  // used in game 2
-  socket.on('revealJapanese', payload => {
-    console.log('revealedJapanese', payload)
-    io.to(payload.room).emit('revealedJapanese', payload)
-  })
-
-  //used in game 1
-  socket.on('addBulle', bulle => {
-    console.log('revealedJapanese', bulle)
-    io.emit('addedBulle', bulle)
-  })
-
-  //used in game 1
-  socket.on('revealTranscript', () => {
-    console.log('revealTranscript')
-    io.emit('revealedTranscript')
-  })
-
-  //used in game 1
-  socket.on('revealTranslation', () => {
-    console.log('revealTranslation')
-    io.emit('revealedTranslation')
-  })
-
-  socket.on('invertRole', () => {
-    console.log('invertRole')
-    io.emit('invertedRole')
-  })
+  socket.on('disconnect', () => {})
 })
